@@ -9,16 +9,23 @@ int currentA = 0;
 
 foreach (var line in input)
 {
-    int val = int.Parse(line.Split(" ")[1]);
-    if (line.StartsWith("f"))
-    { 
-        currentH += val;
-        currentD += val * currentA;
+    var directionTokens = line.Split(" ");
+    string direction = directionTokens[0];
+    var val = int.Parse(directionTokens[1]);
+
+    switch(direction)
+    {
+        case "forward":
+            currentH += val;
+            currentD += val * currentA;
+            break;
+        case "up":
+            currentA -= val;
+            break;
+        case "down":
+            currentA += val;
+            break;
     }
-    if (line.StartsWith("u"))
-        currentA -= val;
-    if (line.StartsWith("d"))
-        currentA += val;
 }
 
 Console.WriteLine(currentH *  currentD);
