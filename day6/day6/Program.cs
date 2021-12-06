@@ -22,8 +22,7 @@ namespace day6
                     numbers[j] = numbers[j + 1];
                 numbers[6] += zeros;
                 numbers[8] = zeros;
-                return 0;
-            });
+            }
 
             Console.WriteLine(numbers.Sum());
         }
