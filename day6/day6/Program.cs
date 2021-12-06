@@ -9,20 +9,19 @@ namespace day6
     {
         static void Main(string[] args)
         {
-            var input = File.ReadAllLines("input.txt")[0].Split(",").Select(l => int.Parse(l)).ToList();
-            long days = 256;
-            var numbers = Enumerable.Range(0, 9).ToDictionary(n => (long)n, n => (long)0);
-            foreach (var i in input)
-                numbers[i]++;
-
-            for (int i = 0; i < days; i++)
+            int days = 256;
+            var input = File.ReadAllLines("input.txt")[0].Split(",").Select(l => int.Parse(l));
+            var numbers = Enumerable.Range(0, 9).ToDictionary(n => (long)n, n => (long)input.Count(i => i == n));
+            Enumerable.Range(0, days+1).Aggregate((_,__) =>
             {
                 long zeros = numbers[0];
-                for (int j = 0; j < 8 ; j++)
-                    numbers[j] = numbers[j+1];
+                for (int j = 0; j < 8; j++)
+                    numbers[j] = numbers[j + 1];
+
                 numbers[6] += zeros;
                 numbers[8] = zeros;
-            }
+                return 0;
+            });
 
             Console.WriteLine(numbers.Values.Sum());
         }
