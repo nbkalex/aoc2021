@@ -7,28 +7,39 @@ map.AddRange(map.Select(n => (n.Item2, n.Item1)).ToList());
 const string start = "start";
 const string end = "end";
 
-Stack<(string, HashSet<string>)> toVisit = new Stack<(string, HashSet<string>)>();
-toVisit.Push((start, new HashSet<string>()));
+var visited = map.Select(n => n.Item1).ToHashSet().ToDictionary(n => n, n => 0);
+
+Stack<(string, Dictionary<string, int>, string)> toVisit = new Stack<(string, Dictionary<string, int>, string)>();
+toVisit.Push((start, visited, start));
 
 int pathsCount = 0;
 while (toVisit.Any())
 {
     var current = toVisit.Pop();
     string currentNode = current.Item1;
+    string currentPath = current.Item3;
     if (currentNode == end)
     {
         pathsCount++;
+        //Console.WriteLine(currentPath);
         continue;
     }
 
-    HashSet<string> currendVisited = current.Item2;
+    Dictionary<string, int> currendVisited = current.Item2;
 
-    if (char.IsLower(currentNode[0]) && !currendVisited.Add(currentNode))
+    if (currentNode == start && currentPath != start)
         continue;
 
-    var nextNodes = map.Where(n => n.Item1 == currentNode).ToArray();
+    bool visitedTwice = currendVisited.Where(kvp => char.IsLower(kvp.Key[0])).Any(kvp => kvp.Value == 2);
+    if (char.IsLower(currentNode[0]))
+        if(currendVisited[currentNode] == 2 || (visitedTwice && currendVisited[currentNode] == 1))
+            continue;
+
+    currendVisited[currentNode]++;
+
+    var nextNodes = map.Where(n => n.Item1 == currentNode).OrderByDescending(n => n.Item2).ToArray();
     foreach (var adiacentNode in nextNodes)
-        toVisit.Push((adiacentNode.Item2, new HashSet<string>(currendVisited)));
+        toVisit.Push((adiacentNode.Item2, new Dictionary<string, int>(currendVisited), currentPath + "," + adiacentNode.Item2));
 }
 
 Console.WriteLine(pathsCount);
