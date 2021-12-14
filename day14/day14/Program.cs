@@ -13,13 +13,14 @@ var tests = new Dictionary<int, string>()
 };
 
 var freqPairs = pairs.ToDictionary(kvp => kvp.Key, kvp => template.IndexOf(kvp.Key) != -1 ? (long)1 : 0);
-
-
+Dictionary<string, long> count2 = template.Distinct().ToDictionary(c => c.ToString(), c => (long)0);
+foreach (var c in template)
+    count2[c.ToString()]++;
 
 foreach (var step in Enumerable.Range(0, 10))
 {
     var freqPairsCopy = freqPairs.ToDictionary(f => f.Key, f => f.Value);
-    
+
     Dictionary<string, long> newFreq = freqPairs.ToDictionary(f => f.Key, f => (long)0);
     foreach (var pair in pairs)
     {
@@ -29,12 +30,17 @@ foreach (var step in Enumerable.Range(0, 10))
 
         freqPairs[pair.Key] = 0;
 
+        if(count2.ContainsKey(pair.Value))
+            count2[pair.Value] += current;
+        else
+            count2.Add(pair.Value, current);
+
         newFreq[pair.Key[0] + pair.Value] += current;
         newFreq[pair.Value + pair.Key[1]] += current;
     }
 
     foreach (var pair in pairs)
-      freqPairs[pair.Key] = newFreq[pair.Key];
+        freqPairs[pair.Key] = newFreq[pair.Key];
 
     var count = freqPairs.Values.Sum();
 }
@@ -47,4 +53,4 @@ foreach (var pair in freqPairs)
 }
 
 
-Console.WriteLine(allElements.Values.Max() - allElements.Values.Min());
+Console.WriteLine(count2.Values.Max() - count2.Values.Min());
