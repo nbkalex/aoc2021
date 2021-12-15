@@ -24,7 +24,7 @@ foreach (var i in Enumerable.Range(0, 5))
     {
       int newRisk = risk.Value + i + j;
       if(newRisk > 9)
-        newRisk = newRisk % 10 + 1;
+        newRisk -= 9;
 
       mapRisk2.Add((risk.Key.Item1 + offsetY, risk.Key.Item2 + offsetX2), newRisk);
       if(i != j)
