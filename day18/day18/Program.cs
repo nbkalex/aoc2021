@@ -55,7 +55,7 @@ foreach (var input in inputLines)
 Pair mainRoot = new Pair();
 foreach (var r in roots)
 {
-  print(r.pairLeft);
+  //print(r.pairLeft);
   if (mainRoot.pairLeft == null)
   {
     mainRoot.pairLeft = r.pairLeft;
@@ -66,17 +66,17 @@ foreach (var r in roots)
     if (r.pairLeft == null)
       continue;
 
+    var newMainRoot = new Pair() { pairLeft = mainRoot };
     mainRoot.pairRight = r.pairLeft;
     r.pairLeft.Parent = mainRoot;
-    var newMainRoot = new Pair() { pairLeft = mainRoot };
     mainRoot.Parent = newMainRoot;
     mainRoot = newMainRoot;
   }
 
   Resolve(mainRoot);
-  print(mainRoot);
 }
 
+print(mainRoot);
 Console.WriteLine(mainRoot.Magnitude / 3);
 
 void print(Pair root, int lvl = 0)
@@ -114,6 +114,7 @@ void print(Pair root, int lvl = 0)
 void Resolve(Pair root)
 {
   bool isOk = false;
+  var childs = root.Childs.ToList();
   while (!isOk)
   {
     isOk = true;
@@ -121,10 +122,10 @@ void Resolve(Pair root)
     Pair exploded = null;
     List<Pair> toAdd = new List<Pair>();
 
-    var childs = root.Childs.ToList();
+
     foreach (var pair in childs)
     {
-      if (pair.Level > 4)
+      if (pair.Level > 4 && pair.valLeft != -1 && pair.valRight != -1)
       {
         exploded = pair;
         pair.Explode();
@@ -172,7 +173,7 @@ class Pair
     {
       List<Pair> result = new List<Pair>();
 
-      if (valLeft == -1)
+      if (valLeft == -1 && pairLeft != null)
       {
         result.Add(pairLeft);
         result.AddRange(pairLeft.Childs);
@@ -210,9 +211,6 @@ class Pair
         lvl++;
       }
 
-      if (current.pairRight != null)
-        lvl++;
-
       return lvl;
     }
   }
@@ -242,7 +240,7 @@ class Pair
         if (current == null)
           return null;
 
-        while (current.valRight == -1)
+        while (current != null && current.valRight == -1)
           current = current.pairRight;
 
         return current;
@@ -344,5 +342,39 @@ class Pair
     pairLeft = new Pair() { valLeft = (int)Math.Floor((float)valLeft / 2), valRight = (int)Math.Ceiling((float)valLeft / 2), Parent = this };
     valLeft = -1;
   }
+
+  public string AsString
+  {
+    get
+    {
+      string result = "";
+
+      if(Parent!= null)
+        result += "[";
+
+      if (valLeft != -1)
+        result += valLeft.ToString();
+      else
+      {
+        if (pairLeft == null)
+          return "";
+        result += pairLeft.AsString;
+      }
+
+      if( valRight != -1 || pairRight != null)
+        result += ",";
+
+      if (valRight != -1)
+        result += valRight.ToString();
+      else if (pairRight != null)
+        result += pairRight.AsString;
+
+      if (Parent != null)
+        result += "]";
+
+      return result;
+    }
+  }
+
 }
 
