@@ -1,4 +1,6 @@
-﻿string[] inputLines = File.ReadAllLines("input.txt");
+﻿using System.Diagnostics;
+
+string[] inputLines = File.ReadAllLines("input.txt");
 
 
 
@@ -6,10 +8,8 @@ List<Pair> roots = new List<Pair>();
 
 foreach (var input in inputLines)
 {
-  Pair root = new Pair();
-  roots.Add(root);
 
-  Pair current = root;
+  Pair current = null;
   for (int i = 0; i < input.Length; i++)
   {
     char c = input[i];
@@ -17,10 +17,16 @@ foreach (var input in inputLines)
     {
       case '[':
         var newPair = new Pair() { Parent = current };
-        if (current.valLeft != -1 || current.pairLeft != null)
-          current.pairRight = newPair;
+
+        if (current != null)
+        {
+          if (current.valLeft != -1 || current.pairLeft != null)
+            current.pairRight = newPair;
+          else
+            current.pairLeft = newPair;
+        }
         else
-          current.pairLeft = newPair;
+          roots.Add(newPair);
 
         current = newPair;
 
@@ -52,110 +58,124 @@ foreach (var input in inputLines)
   }
 }
 
-Pair mainRoot = new Pair();
+Console.ForegroundColor = ConsoleColor.White;
+
+Pair mainRoot = null;
 foreach (var r in roots)
 {
-  //print(r.pairLeft);
-  if (mainRoot.pairLeft == null)
+  if (mainRoot == null)
   {
-    mainRoot.pairLeft = r.pairLeft;
-    r.pairLeft.Parent = mainRoot;
+    mainRoot = r;
+    r.Parent = null;
+
+    if (r.pairRight != null)
+    {
+      mainRoot.pairRight = r.pairRight;
+      r.pairRight.Parent = mainRoot;
+    }
   }
   else
   {
-    if (r.pairLeft == null)
-      continue;
-
     var newMainRoot = new Pair() { pairLeft = mainRoot };
-    mainRoot.pairRight = r.pairLeft;
-    r.pairLeft.Parent = mainRoot;
     mainRoot.Parent = newMainRoot;
+    newMainRoot.pairRight = r;
+    r.Parent = newMainRoot;
     mainRoot = newMainRoot;
   }
 
-  Resolve(mainRoot);
-}
+  Console.WriteLine(mainRoot.AsString);
 
-print(mainRoot);
-Console.WriteLine(mainRoot.Magnitude / 3);
-
-void print(Pair root, int lvl = 0)
-{
-  if (root == null)
-    return;
-
-  if (lvl != 0)
-    Console.Write("[");
-
-  if (root.valLeft != -1)
-    Console.Write(root.valLeft);
-  else
+  bool repeat = true;
+  while (repeat)
   {
-    print(root.pairLeft, lvl + 1);
-    if (lvl != 0)
-      Console.Write(",");
+    repeat = Explode(mainRoot);
+    if (repeat)
+      continue;
+
+    repeat = Split(mainRoot);
   }
 
-  if (root.valLeft != -1 && root.valRight != -1)
-    Console.Write(",");
-
-  if (root.valRight != -1)
-    Console.Write(root.valRight);
-  else
-    print(root.pairRight, lvl + 1);
-
-  if (lvl != 0)
-    Console.Write("]");
-
-  if (lvl == 0)
-    Console.WriteLine();
 }
 
-void Resolve(Pair root)
+bool Resolve(Pair pair)
 {
-  bool isOk = false;
-  var childs = root.Childs.ToList();
-  while (!isOk)
+
+  if (pair == null)
+    return false;
+
+  if (pair.valLeft >= 0 && pair.valRight >= 0 && pair.Level > 4)
   {
-    isOk = true;
-
-    Pair exploded = null;
-    List<Pair> toAdd = new List<Pair>();
-
-
-    foreach (var pair in childs)
-    {
-      if (pair.Level > 4 && pair.valLeft != -1 && pair.valRight != -1)
-      {
-        exploded = pair;
-        pair.Explode();
-        isOk = false;
-        break;
-      }
-
-      if (pair.valLeft >= 10)
-      {
-        pair.SplitLeft();
-        toAdd.Add(pair.pairLeft);
-
-        isOk = false;
-        break;
-      }
-
-      if (pair.valRight >= 10)
-      {
-        pair.SplitRight();
-        toAdd.Add(pair.pairRight);
-        isOk = false;
-        break;
-      }
-    }
-
-    if (exploded != null)
-      childs.Remove(exploded);
-
-    childs.AddRange(toAdd);
+    pair.Explode();
+    return true;
   }
+
+  if (pair.valLeft >= 10)
+  {
+    pair.SplitLeft();
+    return true;
+  }
+
+  if (pair.valRight >= 10)
+  {
+    pair.SplitRight();
+    return true;
+  }
+
+  if (Resolve(pair.pairLeft))
+    return true;
+
+  if (Resolve(pair.pairRight))
+    return true;
+
+  return false;
+}
+
+bool Explode(Pair pair)
+{
+
+  if (pair == null)
+    return false;
+
+  if (pair.valLeft >= 0 && pair.valRight >= 0 && pair.Level > 4)
+  {
+    pair.Explode();
+    return true;
+  }
+
+  if (Explode(pair.pairLeft))
+    return true;
+
+  if (Explode(pair.pairRight))
+    return true;
+
+  return false;
+}
+
+bool Split(Pair pair)
+{
+
+  if (pair == null)
+    return false;
+
+  if (pair.valLeft >= 10)
+  {
+    pair.SplitLeft();
+    return true;
+  }
+
+  if (pair.valRight >= 10)
+  {
+    pair.SplitRight();
+    return true;
+  }
+
+  if (Split(pair.pairLeft))
+    return true;
+
+  if (Split(pair.pairRight))
+    return true;
+
+  return false;
 }
 
 
@@ -205,13 +225,13 @@ class Pair
     {
       Pair current = this;
       int lvl = 0;
-      while (current.Parent != null)
+      while (current != null)
       {
         current = current.Parent;
         lvl++;
       }
 
-      return lvl;
+      return lvl+1;
     }
   }
 
@@ -295,11 +315,15 @@ class Pair
       {
         //nextleft.pairLeft = null;
         nextleft.valLeft += valLeft;
+        //if(nextleft.valLeft >= 10)
+        //  nextleft.SplitLeft();
       }
       else
       {
         //nextleft.pairRight = null;
         nextleft.valRight += valLeft;
+        //if(nextleft.valRight >= 10)
+        //  nextleft.SplitRight();
       }
     }
 
@@ -309,12 +333,16 @@ class Pair
       if (nextright.pairLeft != null)
       {
         nextright.valRight += valRight;
+        //if(nextright.valRight >= 10)
+        //  nextright.SplitRight();
         //nextright.pairRight = null;
       }
       else
       {
         //nextright.pairLeft = null;
         nextright.valLeft += valRight;
+        //if(nextright.valLeft >= 10)
+        //  nextright.SplitLeft();
       }
     }
 
@@ -335,12 +363,16 @@ class Pair
   {
     pairRight = new Pair() { valLeft = (int)Math.Floor((float)valRight / 2), valRight = (int)Math.Ceiling((float)valRight / 2), Parent = this };
     valRight = -1;
+    if (pairRight.Level > 4)
+      pairRight.Explode();
   }
 
   public void SplitLeft()
   {
     pairLeft = new Pair() { valLeft = (int)Math.Floor((float)valLeft / 2), valRight = (int)Math.Ceiling((float)valLeft / 2), Parent = this };
     valLeft = -1;
+    if (pairLeft.Level > 4)
+      pairLeft.Explode();
   }
 
   public string AsString
@@ -349,7 +381,7 @@ class Pair
     {
       string result = "";
 
-      if(Parent!= null)
+      //if (Parent != null)
         result += "[";
 
       if (valLeft != -1)
@@ -361,7 +393,7 @@ class Pair
         result += pairLeft.AsString;
       }
 
-      if( valRight != -1 || pairRight != null)
+      if (valRight != -1 || pairRight != null)
         result += ",";
 
       if (valRight != -1)
@@ -369,8 +401,52 @@ class Pair
       else if (pairRight != null)
         result += pairRight.AsString;
 
-      if (Parent != null)
+      //if (Parent != null)
         result += "]";
+
+      return result;
+    }
+  }
+
+  public string AsStringLevels
+  {
+    get
+    {
+      string result = "";
+
+      if (Parent != null)
+        result += " ";
+
+      if (valLeft != -1)
+      {
+        foreach (var c in valRight.ToString())
+          result += " ";
+      }
+      else
+      {
+        if (pairLeft == null)
+          return "";
+        result += pairLeft.AsStringLevels;
+      }
+
+      if (valRight > 0 || pairRight != null)
+      {
+        if (valLeft >= 0 && valRight >= 0)
+          result += Level;
+        else
+          result += " ";
+      }
+
+      if (valRight != -1)
+      {
+        foreach (var c in valRight.ToString())
+          result += " ";
+      }
+      else if (pairRight != null)
+        result += pairRight.AsStringLevels;
+
+      if (Parent != null)
+        result += " ";
 
       return result;
     }

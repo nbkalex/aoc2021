@@ -33,7 +33,7 @@ foreach (var line in lines)
     decoded.Add(numbers[2], input.FirstOrDefault(i => !i.Contains(eCodded)));
 
     // 6 (6 + 1 = 8)
-    decoded.Add(numbers[6], input.FirstOrDefault(i => i.Length == 6 && (i + decoded[numbers[1]]).Distinct().OrderBy(c => c).SequenceEqual(numbers[8])));
+    decoded.Add(numbers[6], input.FirstOrDefault(i => i.Length == 6 && (i + decoded[numbers[1]]).Distinct().OrderBy(c => c).SequenceEqual(numbers[8].ToHashSet())));
 
     // 3 (1 + 3 = 3)
     decoded.Add(numbers[3], input.FirstOrDefault(i => i.Length == 5 && (i + decoded[numbers[1]]).Distinct().OrderBy(c => c).SequenceEqual(i.OrderBy(c => c))));
