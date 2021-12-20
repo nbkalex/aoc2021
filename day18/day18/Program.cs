@@ -58,82 +58,103 @@ foreach (var input in inputLines)
   }
 }
 
-Pair mainRoot = null;
+Pair mainRoot = new Pair();
+
+long maxMagnitude = 0;
+
 foreach (var r in roots)
 {
-  if (mainRoot == null)
-  {
-    mainRoot = r;
-    r.Parent = null;
 
-    if (r.pairRight != null)
-    {
-      mainRoot.pairRight = r.pairRight;
-      r.pairRight.Parent = mainRoot;
-    }
-  }
-  else
-  {
-    var newMainRoot = new Pair() { pairLeft = mainRoot };
-    mainRoot.Parent = newMainRoot;
-    newMainRoot.pairRight = r;
-    r.Parent = newMainRoot;
-    mainRoot = newMainRoot;
-  }
+  //var mainRootClone = Clone(null, mainRoot);
+  //var rClone = Clone(null, r);
+  //Add(ref mainRootClone, rClone);
+  //Resolve(mainRootClone);
+  //mainRoot = mainRootClone;
 
-  bool repeat = true;
-  while (repeat)
+  foreach (var r2 in roots)
   {
-    repeat = Explode(mainRoot);
-
-    if (repeat)
+    if(r2 == r)
       continue;
-
-    if(mainRoot.AsString == "[[[[7,7],[7,8]],[[9,5],[8,0]]],[[[9,10],20],[8,[9,0]]]]")
-    {
-
-    }
-
-    repeat = Split(mainRoot);
+  
+    Pair rClone = Clone(null, r);
+    Pair r2Clone = Clone(null, r2);
+  
+    Add(ref rClone, r2Clone);
+    Resolve(rClone);
+  
+    if(rClone.Magnitude > maxMagnitude)
+      maxMagnitude = rClone.Magnitude;
+  
+    rClone = Clone(null, r);
+    r2Clone = Clone(null, r2);
+  
+    Add(ref r2Clone, rClone);
+    Resolve(r2Clone);
+  
+    if (r2Clone.Magnitude > maxMagnitude)
+      maxMagnitude = r2Clone.Magnitude;
+  
   }
 }
 
 //Debug.Assert(mainRoot.AsString == "[[[[7,7],[7,8]],[[9,5],[8,7]]],[[[6,8],[0,8]],[[9,9],[9,0]]]]");
 
-Console.WriteLine(mainRoot.AsString);
-Console.WriteLine(mainRoot.Magnitude);
+Console.WriteLine(maxMagnitude);
 
-bool Resolve(Pair pair)
+Pair Clone(Pair parent, Pair toclone)
+{
+  if(toclone == null)
+    return null;
+
+  Pair clone = new Pair()
+  {
+    valLeft = toclone.valLeft,
+    valRight = toclone.valRight,
+    Parent = parent
+  };
+
+  clone.pairLeft = Clone(clone, toclone.pairLeft);
+  clone.pairRight = Clone(clone, toclone.pairRight);
+
+  return clone;
+}
+
+void Add(ref Pair aMainRoot, Pair r)
+{
+  if (aMainRoot.Empty)
+  {
+    aMainRoot = r;
+    r.Parent = null;
+
+    if (r.pairRight != null)
+    {
+      aMainRoot.pairRight = r.pairRight;
+      r.pairRight.Parent = aMainRoot;
+    }
+  }
+  else
+  {
+    var newMainRoot = new Pair() { pairLeft = aMainRoot };
+    aMainRoot.Parent = newMainRoot;
+    newMainRoot.pairRight = r;
+    r.Parent = newMainRoot;
+    aMainRoot = newMainRoot;
+  }
+}
+
+void Resolve(Pair pair)
 {
 
-  if (pair == null)
-    return false;
-
-  if (pair.valLeft >= 0 && pair.valRight >= 0 && pair.Level > 4)
+  bool repeat = true;
+  while (repeat)
   {
-    pair.Explode();
-    return true;
+    repeat = Explode(pair);
+
+    if (repeat)
+      continue;
+
+    repeat = Split(pair);
   }
-
-  if (pair.valLeft >= 10)
-  {
-    pair.SplitLeft();
-    return true;
-  }
-
-  if (pair.valRight >= 10)
-  {
-    pair.SplitRight();
-    return true;
-  }
-
-  if (Resolve(pair.pairLeft))
-    return true;
-
-  if (Resolve(pair.pairRight))
-    return true;
-
-  return false;
 }
 
 bool Explode(Pair pair)
@@ -193,25 +214,9 @@ class Pair
   public Pair pairLeft { get; set; }
   public Pair pairRight { get; set; }
 
-  public List<Pair> Childs
+  public bool Empty
   {
-    get
-    {
-      List<Pair> result = new List<Pair>();
-
-      if (valLeft == -1 && pairLeft != null)
-      {
-        result.Add(pairLeft);
-        result.AddRange(pairLeft.Childs);
-      }
-
-      if (valRight == -1 && pairRight != null)
-      {
-        result.Add(pairRight);
-        result.AddRange(pairRight.Childs);
-      }
-      return result;
-    }
+    get { return valLeft == -1 && valRight == -1 && pairRight == null && pairLeft == null; }
   }
 
   public long Magnitude
@@ -237,7 +242,7 @@ class Pair
         lvl++;
       }
 
-      return lvl+1;
+      return lvl + 1;
     }
   }
 
@@ -387,8 +392,7 @@ class Pair
     {
       string result = "";
 
-      //if (Parent != null)
-        result += "[";
+      result += "[";
 
       if (valLeft != -1)
         result += valLeft.ToString();
@@ -407,8 +411,7 @@ class Pair
       else if (pairRight != null)
         result += pairRight.AsString;
 
-      //if (Parent != null)
-        result += "]";
+      result += "]";
 
       return result;
     }
@@ -457,6 +460,5 @@ class Pair
       return result;
     }
   }
-
 }
 
