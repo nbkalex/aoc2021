@@ -29,20 +29,27 @@ currentScanner = scanners[0];
 
 HashSet<(int,int,int)> beacons = scanners[0].Beacons.ToHashSet();
 
-while (detectedScanners.Count != scanners.Count)
+foreach (var currentScanner2 in scanners.Skip(1))
 {
   foreach (var scanner in scanners)
   {
-    var scannerPos = GetOverlappingBeacons(currentScanner, scanner);
+    if(scanner == currentScanner2)
+      continue;
+
+    if(!detectedScanners.ContainsKey(scanner))
+      continue;
+
+    var scannerPos = GetOverlappingBeacons(scanner, currentScanner2);
+    var currentScannerPos = detectedScanners[scanner];
+    var scannerPos2 = ((currentScannerPos.Item1 + scannerPos.Item1, currentScannerPos.Item2 + scannerPos.Item2, currentScannerPos.Item3 + scannerPos.Item3));
+
     if (scannerPos != (0, 0, 0))
     {
-      var currentScannerPos = detectedScanners[currentScanner];
-      scannerPos = ((currentScannerPos.Item1 + scannerPos.Item1, currentScannerPos.Item2 + scannerPos.Item2, currentScannerPos.Item3 + scannerPos.Item3));
-      detectedScanners[scanner] = scannerPos;
-      currentScanner = scanner;
+      
+      detectedScanners[currentScanner2] = scannerPos2;
 
       foreach(var scannerBeacons in scanner.Beacons)
-        beacons.Add((scannerBeacons.Item1 + scannerPos.Item1, scannerBeacons.Item2 + scannerPos.Item2, scannerBeacons.Item3 + scannerPos.Item3));
+        beacons.Add((scannerPos2.Item1 + scannerBeacons.Item1, scannerPos2.Item2 + scannerBeacons.Item2, scannerPos2.Item3 + scannerBeacons.Item3));
     }
   }
 }
@@ -81,11 +88,11 @@ Console.WriteLine();
 
   foreach (var orientation in orientations)
   {
+    // apply orientation
+    var oriented_beacons = scanner2.Beacons.Select(b => (b.Item1 * orientation.Item1, b.Item2 * orientation.Item2, b.Item3 * orientation.Item3));
+
     foreach (var transform in transforms)
     {
-      // apply orientation
-      var oriented_beacons = scanner2.Beacons.Select(b => (b.Item1 * orientation.Item1, b.Item2 * orientation.Item2, b.Item3 * orientation.Item3));
-
       // apply transform
       var transformed_beacons = oriented_beacons.Select(b => transform(b));
 
@@ -93,14 +100,14 @@ Console.WriteLine();
       {
         foreach (var bt in transformed_beacons)
         {
-          (int, int, int) offset = (b1.Item1 - bt.Item1, b1.Item2 - bt.Item2, b1.Item3 - bt.Item3);
+          (int, int, int) offset = (bt.Item1 - b1.Item1, bt.Item2 - b1.Item2, bt.Item3 - b1.Item3);
 
           // apply offset
-          var offsetted = transformed_beacons.Select(bt => (bt.Item1 + offset.Item1, bt.Item2 + offset.Item2, bt.Item3 + offset.Item3));
+          var offsetted = transformed_beacons.Select(bt => (bt.Item1 - offset.Item1, bt.Item2 - offset.Item2, bt.Item3 - offset.Item3));
           var intersection = scanner1.Beacons.Intersect(offsetted).ToList();
           if (intersection.Count == 12)
           {
-            return offset;
+            return (-1 * offset.Item1, -1 * offset.Item2, -1 * offset.Item3);
             //var rollbackOffset = transform(offset);
             //return (rollbackOffset.Item1 * orientation.Item1, rollbackOffset.Item2 * orientation.Item2, rollbackOffset.Item3 * orientation.Item3);
           }
