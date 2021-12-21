@@ -16,71 +16,104 @@ foreach (var line in lines)
   else
   {
     var coords = line.Split(",").Select(coord => int.Parse(coord)).ToList();
-    currentScanner.Beacons.Add((coords[0], coords[1], coords[2]), new Dictionary<(int, int, int), int>());
+    currentScanner.Beacons.Add((coords[0], coords[1], coords[2]));
   }
 }
 
-// compute distances between beacons
-Dictionary<(Scanner, int), ((int, int, int), (int, int, int))> distPair = new Dictionary<(Scanner, int), ((int, int, int), (int, int, int))>();
-foreach (var scanner in scanners)
+Dictionary<Scanner, (int, int, int)> detectedScanners = new Dictionary<Scanner, (int, int, int)>()
 {
-  foreach (var beacon1 in scanner.Beacons.Keys)
+  { scanners[0], (0,0,0) }
+};
+
+currentScanner = scanners[0];
+
+HashSet<(int,int,int)> beacons = scanners[0].Beacons.ToHashSet();
+
+while (detectedScanners.Count != scanners.Count)
+{
+  foreach (var scanner in scanners)
   {
-    foreach (var beacon2 in scanner.Beacons.Keys)
+    var scannerPos = GetOverlappingBeacons(currentScanner, scanner);
+    if (scannerPos != (0, 0, 0))
     {
-      if (beacon1 == beacon2)
-        continue;
+      var currentScannerPos = detectedScanners[currentScanner];
+      scannerPos = ((currentScannerPos.Item1 + scannerPos.Item1, currentScannerPos.Item2 + scannerPos.Item2, currentScannerPos.Item3 + scannerPos.Item3));
+      detectedScanners[scanner] = scannerPos;
+      currentScanner = scanner;
 
-      int dist = Math.Abs(beacon1.Item1 - beacon2.Item1) +
-                 Math.Abs(beacon1.Item2 - beacon2.Item2) +
-                 Math.Abs(beacon1.Item3 - beacon2.Item3);
-
-      scanner.Beacons[beacon1].Add(beacon2, dist);
-
-      //if(!distPair.ContainsKey((scanner, dist)))
-      //  distPair.Add((scanner, dist), (beacon1, beacon2));
+      foreach(var scannerBeacons in scanner.Beacons)
+        beacons.Add((scannerBeacons.Item1 + scannerPos.Item1, scannerBeacons.Item2 + scannerPos.Item2, scannerBeacons.Item3 + scannerPos.Item3));
     }
   }
 }
 
-List<((int, int, int), (int, int, int))> commonBeacons = new List<((int, int, int), (int, int, int))>();
 
-List<int> commonDistances = new List<int>();
 
-foreach (var scanner in scanners)
+Console.WriteLine();
+
+
+(int, int, int) GetOverlappingBeacons(Scanner scanner1, Scanner scanner2)
 {
-  foreach (var scanner2 in scanners)
+  List<(int, int, int)> result = new List<(int, int, int)>();
+
+  List<(int, int, int)> orientations = new List<(int, int, int)>()
   {
-    if (scanner2 == scanner)
-      continue;
+    (1,1,1),
+    (1,1,-1),
+    (1,-1,1),
+    (1,-1,-1),
+    (-1,1,1),
+    (-1,1,-1),
+    (-1,-1,1),
+    (-1,-1,-1)
+  };
 
-    foreach (var beacon1 in scanner.Beacons)
+  List<Func<(int, int, int), (int, int, int)>> transforms = new List<Func<(int, int, int), (int, int, int)>>()
+  {
+    b => (b.Item1, b.Item2, b.Item3),
+    b => (b.Item1, b.Item3, b.Item2),
+    b => (b.Item2, b.Item1, b.Item3),
+    b => (b.Item2, b.Item3, b.Item1),
+    b => (b.Item3, b.Item1, b.Item2),
+    b => (b.Item3, b.Item2, b.Item1)
+  };
+
+
+  foreach (var orientation in orientations)
+  {
+    foreach (var transform in transforms)
     {
-      HashSet<int> beaconSet = new HashSet<int>();
+      // apply orientation
+      var oriented_beacons = scanner2.Beacons.Select(b => (b.Item1 * orientation.Item1, b.Item2 * orientation.Item2, b.Item3 * orientation.Item3));
 
-      foreach (var beacon2 in scanner2.Beacons)
+      // apply transform
+      var transformed_beacons = oriented_beacons.Select(b => transform(b));
+
+      foreach (var b1 in scanner1.Beacons)
       {
-        var intersection = beacon1.Value.Values.Intersect(beacon2.Value.Values).ToHashSet();
-        commonDistances.AddRange(intersection);
+        foreach (var bt in transformed_beacons)
+        {
+          (int, int, int) offset = (b1.Item1 - bt.Item1, b1.Item2 - bt.Item2, b1.Item3 - bt.Item3);
 
-        if (intersection.Count == 11)
-        {         
-          foreach(var common in intersection)
-            beaconSet.Add(common);
-
-          commonBeacons.Add((beacon1.Key, beacon2.Key));
+          // apply offset
+          var offsetted = transformed_beacons.Select(bt => (bt.Item1 + offset.Item1, bt.Item2 + offset.Item2, bt.Item3 + offset.Item3));
+          var intersection = scanner1.Beacons.Intersect(offsetted).ToList();
+          if (intersection.Count == 12)
+          {
+            return offset;
+            //var rollbackOffset = transform(offset);
+            //return (rollbackOffset.Item1 * orientation.Item1, rollbackOffset.Item2 * orientation.Item2, rollbackOffset.Item3 * orientation.Item3);
+          }
         }
       }
     }
   }
+
+  return (0, 0, 0);
 }
-
-var uniques = commonDistances.ToHashSet();
-
-Console.WriteLine();
 
 class Scanner
 {
   public string Name { get; set; }
-  public Dictionary<(int, int, int), Dictionary<(int, int, int), int>> Beacons { get; set; } = new Dictionary<(int, int, int), Dictionary<(int, int, int), int>>();
+  public List<(int, int, int)> Beacons { get; set; } = new List<(int, int, int)>();
 }
