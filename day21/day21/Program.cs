@@ -1,45 +1,69 @@
-﻿int player1 = 4;
-int player2 = 8;
+﻿int player1 = 8;
+int player2 = 5;
 
 int player1Score = 0;
 int player2Score = 0;
 
+var values = new List<int>();
+for (int turn1 = 1; turn1 <= 3; turn1++)
+  for (int turn2 = 1; turn2 <= 3; turn2++)
+    for (int turn3 = 1; turn3 <= 3; turn3++)
+      values.Add(turn1 + turn2 + turn3);
+
+var cachedStates = new Dictionary<(int, int, int, int), (long, long)>();
+
 //Part1();
-Part2();
+var result2 = Part2((player1, player2, 0, 0));
 
-void Part2()
+Console.WriteLine(Math.Max(result2.Item1, result2.Item2));
+
+(long, long) Part2((int, int, int, int) state)
 {
-  var values = Enumerable.Range(3, 7);
+  if (cachedStates.ContainsKey(state))
+    return cachedStates[state];
 
-  var states = new Queue<(int, int, int, int)>();
-  var found = new HashSet<(int, int, int, int)>();
+  long total1 = 0;
+  long total2 = 0;
 
-  states.Enqueue((4, 8, 0, 0));
-
-  while (states.Any())
+  foreach (int v1 in values)
   {
-    var current = states.Dequeue();
-    // player1
-    foreach (int v1 in values)
+    int p1 = (state.Item1 + v1 - 1) % 10 + 1;
+    int s1 = state.Item3 + p1;
+    if (s1 >= 21)
     {
-      int p1 = (current.Item1 + v1 - 1) % 10 + 1;
-      int s1 = current.Item3 + p1;
-      foreach (int v2 in values)
-      {
-        int p2 = (current.Item2 + v2 - 1) % 10 + 1;
-        int s2 = current.Item4 + p2;
+      total1++;
+      var newState = (p1, state.Item2, s1, state.Item4);
+      if (!cachedStates.ContainsKey(newState))
+        cachedStates.Add(newState, (1, 0));
+      continue;
+    }
 
-        if (s1 < 21 && s2 < 21)
-        {
-          var newState = (p1, p2, s1, s2);
-          states.Enqueue(newState);
-          found.Add(newState);
-        }
+    foreach (int v2 in values)
+    {
+      int p2 = (state.Item2 + v2 - 1) % 10 + 1;
+      int s2 = state.Item4 + p2;
+      var newState = (p1, p2, s1, s2);
+
+      if (s2 >= 21)
+      {
+        total2++;
+        if (!cachedStates.ContainsKey(newState))
+          cachedStates.Add(newState, (0, 1));
+        continue;
+      }
+      else
+      {
+        var result = Part2(newState);
+        total1 += result.Item1;
+        total2 += result.Item2;
       }
     }
   }
 
-  Console.WriteLine(values);
+
+  var total = (total1, total2);
+  cachedStates.Add(state, total);
+  return total;
 }
 
 void Part1()
