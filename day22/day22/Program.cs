@@ -1,4 +1,6 @@
-﻿var input = File.ReadAllLines("input.txt");
+﻿using System.Numerics;
+
+var input = File.ReadAllLines("input.txt");
 
 var cubes = new List<(bool, (int, int), (int, int), (int, int))>();
 foreach (var line in input)
@@ -12,43 +14,49 @@ foreach (var line in input)
   cubes.Add((on, xs, ys, zs));
 }
 
-Dictionary<(int, int, int), bool> cubesFound = new Dictionary<(int, int, int), bool>();
 var initialized = new List<(bool, (int, int), (int, int), (int, int))>();
-long total = 0;
-foreach (var cub in cubes)
+var negatives = new Dictionary<(bool, (int, int), (int, int), (int, int)), int>();
+
+foreach (var cube in cubes)
 {
-  int x1 = cub.Item2.Item1;
-  int x2 = cub.Item2.Item2;
+  int x1 = cube.Item2.Item1;
+  int x2 = cube.Item2.Item2;
 
-  int y1 = cub.Item3.Item1;
-  int y2 = cub.Item3.Item2;
+  int y1 = cube.Item3.Item1;
+  int y2 = cube.Item3.Item2;
 
-  int z1 = cub.Item4.Item1;
-  int z2 = cub.Item4.Item2;
+  int z1 = cube.Item4.Item1;
+  int z2 = cube.Item4.Item2;
 
-  if (x1 >= -50 && x2 <= 50
-   && y1 >= -50 && y2 <= 50
-   && z1 >= -50 && z2 <= 50)
+  var updateIntersections = new List<(bool, (int, int), (int, int), (int, int))>();
+  foreach (var initCube in initialized)
   {
-    long vol = GetVol(cub);
-    if(cub.Item1)
-      total += vol;
+    var intersection = GetIntersection(initCube, cube);
+    if (intersection == null)
+      continue;
 
-    foreach (var initCub in initialized)
-    {
-      var intersection = GetIntersection(cub, initCub);
-      total-= GetVol(intersection);
-    }
-
-    initialized.Add(cub);
+    updateIntersections.Add((!initCube.Item1, intersection.Value.Item2, intersection.Value.Item3, intersection.Value.Item4));
   }
+
+  if (cube.Item1)
+    initialized.Add(cube);
+
+  initialized.AddRange(updateIntersections);
 }
 
+BigInteger total = 0;
+foreach (var cube in initialized)
+{
+  if (cube.Item1)
+    total += GetVol(cube);
+  else
+    total -= GetVol(cube);
+}
 
 Console.WriteLine(total);
 
 
-long GetVol((bool, (int, int), (int, int), (int, int)) cub)
+BigInteger GetVol((bool, (int, int), (int, int), (int, int)) cub)
 {
   int x1 = cub.Item2.Item1;
   int x2 = cub.Item2.Item2;
@@ -59,10 +67,10 @@ long GetVol((bool, (int, int), (int, int), (int, int)) cub)
   int z1 = cub.Item4.Item1;
   int z2 = cub.Item4.Item2;
 
-  return Math.Abs(x2 - x1) * Math.Abs(y2 - y1) * Math.Abs(z2 - z1);
+  return (BigInteger)(Math.Abs(x2 - x1) + 1) * (BigInteger)(Math.Abs(y2 - y1) + 1) * (BigInteger)(Math.Abs(z2 - z1) + 1);
 }
 
-(bool, (int, int), (int, int), (int, int)) GetIntersection((bool, (int, int), (int, int), (int, int)) cub1, (bool, (int, int), (int, int), (int, int)) cub2)
+(bool, (int, int), (int, int), (int, int))? GetIntersection((bool, (int, int), (int, int), (int, int)) cub1, (bool, (int, int), (int, int), (int, int)) cub2)
 {
   int x11 = cub1.Item2.Item1;
   int x12 = cub1.Item2.Item2;
@@ -82,50 +90,30 @@ long GetVol((bool, (int, int), (int, int), (int, int)) cub)
   int z21 = cub2.Item4.Item1;
   int z22 = cub2.Item4.Item2;
 
-  int x1Dif = 0;
-  int x2Dif = 0;
+  int x1Dif = Math.Max(x11, x21);
+  int x2Dif = Math.Min(x12, x22);
 
-  if (x11 <= x21 && x12 >= x21)
-  {
-    x1Dif = x21;
-    x2Dif = Math.Min(x12, x22);
-  }
+  if (x1Dif > x2Dif)
+    return null;
 
-  if (x11 <= x22 && x11 >= x21)
-  {
-    x1Dif = x11;
-    x2Dif = Math.Min(x12, x22);
-  }
+  int y1Dif = Math.Max(y11, y21);
+  int y2Dif = Math.Min(y12, y22);
 
-  int y1Dif = 0;
-  int y2Dif = 0;
+  if (y1Dif > y2Dif)
+    return null;
 
-  if (y11 <= y21 && y12 >= y21)
-  {
-    y1Dif = y21;
-    y2Dif = Math.Min(y12, y22);
-  }
+  int z1Dif = Math.Max(z11, z21);
+  int z2Dif = Math.Min(z12, z22);
 
-  if (y11 <= y22 && y11 >= y21)
-  {
-    y1Dif = y11;
-    y2Dif = Math.Min(y12, y22);
-  }
+  if (z1Dif > z2Dif)
+    return null;
 
-  int z1Dif = 0;
-  int z2Dif = 0;
+  return (cub2.Item1, (x1Dif, x2Dif), (y1Dif, y2Dif), (z1Dif, z2Dif));
+}
 
-  if (z11 <= z21 && z12 >= z21)
-  {
-    z1Dif = z21;
-    z2Dif = Math.Min(z12, z22);
-  }
-
-  if (z11 <= z22 && z11 >= z21)
-  {
-    z1Dif = z11;
-    z2Dif = Math.Min(z12, z22);
-  }
-
-  return (cub2.Item1, (x1Dif, x2Dif), (y1Dif, y1Dif), (z1Dif, z1Dif));
+bool IsEmpty((bool, (int, int), (int, int), (int, int)) cube)
+{
+  return cube.Item2.Item1 == 0 || cube.Item2.Item2 == 0
+      || cube.Item3.Item1 == 0 || cube.Item3.Item2 == 0
+      || cube.Item4.Item1 == 0 || cube.Item4.Item2 == 0;
 }
